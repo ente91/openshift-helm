@@ -1,5 +1,8 @@
 name: Docker Image CI
 
+env:
+ IMAGE_NAME: openshift-helm
+
 on:
   push:
     branches: [ "main" ]
@@ -7,7 +10,7 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build:
+  build_and_push:
     runs-on: ubuntu-latest
     steps:
       - name: 📥 Checkout code
@@ -22,5 +25,14 @@ jobs:
       - name: 🐳 Build and tag image
         run: |
           COMMIT_SHA=$(git rev-parse --short HEAD)
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/my-image:$COMMIT_SHA .
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/$IMAGE_NAME:$COMMIT_SHA .
           echo "image_tag=$COMMIT_SHA" >> $GITHUB_ENV
+
+      - name: 📤 Push image
+        run: |
+          docker push ${{ secrets.DOCKER_USERNAME }}/$IMAGE_NAME:${{ env.image_tag }}
+
+      - name: 🔄 Tag as 'latest'
+        run: |
+          docker tag ${{ secrets.DOCKER_USERNAME }}/$IMAGE_NAME:${{ env.image_tag }} ${{ secrets.DOCKER_USERNAME }}/$IMAGE_NAME:latest
+          docker push ${{ secrets.DOCKER_USERNAME }}/$IMAGE_NAME:latest
